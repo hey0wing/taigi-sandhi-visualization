@@ -1,6 +1,8 @@
 # 台語變調視像化 taigi-sandhi-visualization
 
-Highlights tone sandhi changes in Taiwanese romanization on the MOE dictionary site. Changed tones are marked in red with a tooltip showing possible base tone → sandhi tone.
+Highlights tone sandhi changes in Taiwanese romanization on the MOE dictionary site.
+
+![example](https://raw.githubusercontent.com/hey0wing/taigi-sandhi-visualization/main/readme/example.gif)
 
 ## Features
 
@@ -16,16 +18,16 @@ Highlights tone sandhi changes in Taiwanese romanization on the MOE dictionary s
 
 ## Installation
 
-- **Note**: Device capatibility
-    - Desktop: Chrome, Brave, Safari, Firefox, Edge are supported.
-    - Android: Only *Firefox* and *Edge* are supported devices due to userscript manager availability.
-    - iOS: To be tested...
+- **Note**: Device & browser compatibility
+    - Desktop: Chrome, Brave, Safari, Firefox, Edge
+    - Android: *Firefox* or *Edge*
+    - iOS: Safari with *Userscript* (Free) or *Tampermonkey* (USD2.99)
 
 1. **Install a Userscript Manager**:
     - Follow the [Greasy Fork tutorial](https://greasyfork.org/en/help/installing-user-scripts) to install one.
     - Or install Tampermonkey (*Recommended*), Violentmonkey or Greasemonkey on your own
-2. **Add the Userscript** (if not using Greasy Fork):
-    - **Recommended**: Install the script directly via [Greasy Fork](https://greasyfork.org/en/scripts/545891-taigi-sandhi-visualization) by clicking "Install this script".
+2. **Add the Userscript**:
+    - **Greasy Fork (Recommended)**: Click [Here](https://greasyfork.org/en/scripts/545891-taigi-sandhi-visualization) and install the script directly by clicking "Install this script".
     - Otherwise, copy the script directly from [`taigi-sandhi-visualization.user.js`](https://raw.githubusercontent.com/hey0wing/taigi-sandhi-visualization/main/taigi-sandhi-visualization.user.js).
         - Open your userscript manager, create a new script, and paste the code.
 3. **Visit the MOE Dictionary**:
