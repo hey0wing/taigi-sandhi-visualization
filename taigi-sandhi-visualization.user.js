@@ -1,13 +1,13 @@
 // ==UserScript==
 // @name        taigi-sandhi-visualization
 // @namespace   hey0wing
-// @version     1.1
+// @version     1.2
 // @description Highlights tone sandhi changes in Taiwanese romanization on the MOE dictionary site. Changed tones are marked in red with a tooltip showing possible base tone → sandhi tone.
 // @author      hey0wing
 // @match       https://sutian.moe.edu.tw/*
-// @run-at       document-idle
+// @run-at      document-idle
 // @grant       none
-// @license      MIT
+// @license     MIT
 // ==/UserScript==
 
 (() => {
@@ -154,52 +154,44 @@
         });
     }
 
-    function highlightSandhi(text, button = null) {
+    function highlightSandhi(text) {
         const words = text.replace('/',' / ').split(/\s+/);
         return `
-            <tr>
-                ${words.map((v1, i) => {
-                    let w1 = v1.split('--')
-                    return w1.map((v2, j) => {
-                        let word = v2.split('-');
-                        return word.map((v3, k) => {
-                            if (v3 == '/') return '<td></td>'
-                            var tone;
-                            if (k == word.length-1 && j != w1.length-1) {
-                                // Word before 輕聲 neutral tone
-                                tone = getTone({syllable: v3, neutral: 'before'})
-                            } else if (k == 0 && j != 0) {
-                                // Word after 輕聲 neutral tone
-                                tone = getTone({syllable: v3, neutral: 'after'})
-                            } else if (word.length === 1 && i != words.length-1) {
-                                // Monosyllabic and not the final word
-                                tone = getTone({syllable: v3, sandhi: true, suffix: words[i+1]})
-                            } else {
-                                tone = getTone({syllable: v3, sandhi: k!==word.length-1, suffix: word[k+1]})
-                            }
-                            return `<td class="syllable-cell ${tone.color}"
-                                        data-color=${tone.color}
-                                        data-tone=${tone.tone}
-                                        data-sandhi=${tone.sandhi}>
-                                        ${tone['display']}
-                                    </td>`;
-                        }).join('<td></td>');
-                    }).join('<td></td>');
-                }).join('') + 
-                (button ? '<td></td>' : '')}
-            </tr>
-            <tr>
-                ${words.map((v1, i) => {
-                    return v1.split('--').map((v2, j) => {
-                        return v2.split('-').map((v3, k) => {
-                            if (v3 == '/') return '<td>/</td>'
-                            return `<td>${v3}</td>`;
-                        }).join('<td>-</td>');
-                    }).join('<td>--</td>');
-                }).join('') + 
-                (button ? '<td>'+button.outerHTML+'</td>' : '')}
-            </tr>
-        `;
+        <div class="d-flex flex-row flex-wrap align-items-end">
+            ${words.map((v1, i) => {
+                let w1 = v1.split('--');
+                return w1.map((v2, j) => {
+                    let word = v2.split('-');
+                    return word.map((v3, k) => {
+                        if (v3 === '/') return '<div>/</div>';
+                        let tone;
+                        if (k === word.length - 1 && j !== w1.length - 1) {
+                            // Word before 輕聲 neutral tone
+                            tone = getTone({ syllable: v3, neutral: 'before' });
+                        } else if (k === 0 && j !== 0) {
+                            // Word after 輕聲 neutral tone
+                            tone = getTone({ syllable: v3, neutral: 'after' });
+                        } else if (word.length === 1 && i !== words.length - 1 && ![',','.','!'].some(x => v3.includes(x))) {
+                            // Monosyllabic and not the final word
+                            tone = getTone({ syllable: v3, sandhi: true, suffix: words[i + 1] });
+                        } else {
+                            tone = getTone({ syllable: v3, sandhi: k !== word.length - 1, suffix: word[k + 1] });
+                        }
+                        return `
+                            <div>
+                                <div class="syllable-cell ${tone.color}" 
+                                    data-color="${tone.color}" 
+                                    data-tone="${tone.tone}" 
+                                    data-sandhi="${tone.sandhi}">
+                                    ${tone.display}
+                                </div>
+                                <div>${v3}</div>
+                            </div>
+                        `;
+                    }).join('<div>-</div>');
+                }).join('<div>--</div>');
+            }).join('&nbsp;')}
+        </div>`
     }
 
     function processPage(node) {
@@ -210,16 +202,9 @@
             }
             let text = node.nodeValue.trim();
             if (text && /[\-āáàâǎa̍ēéèêěe̍īíìîǐi̍ōóòôǒo̍ūúùûǔu̍͘]/.test(text) && !isCjk(text)) {
-                const button = node.parentNode.parentNode.querySelector('button');
-                const div = document.createElement('table');
-                div.innerHTML = highlightSandhi(text, button);
-                // console.log(node.parentNode)
-                // if (node.parentNode.tagName === 'TD') {
-                //     console.log(node.parentNode)
-                //     node.parentNode.setAttribute("colspan", "1");
-                // }
+                const div = document.createElement('div');
+                div.innerHTML = highlightSandhi(text);
                 node.parentNode.replaceChild(div, node);
-                if (button) button.remove()
             }
         } else if (node.nodeType === Node.ELEMENT_NODE) {
             if (node.tagName === 'UL' && ['fs-4', 'fw-bold', 'list-inline'].every(c => node.classList.contains(c))) {
@@ -234,22 +219,20 @@
     }
 
     function replaceUL(node) {
-        // Find the last li and get its button
-        const listItems = node.querySelectorAll('li');
-        const lastLi = listItems[listItems.length - 1];
-        const button = lastLi ? lastLi.querySelector('button') : null;
-
         // Get all span texts from li children and join with "/"
-        let spanTexts = Array.from(listItems)
+        let spanTexts = Array.from(node.querySelectorAll('li'))
             .map(li => li.querySelector('span')?.textContent || '')
             .filter(text => text)
             .join('/');
+        node.querySelectorAll('span').forEach(span => span.remove());
 
-        const div = document.createElement('table');
-        div.innerHTML = highlightSandhi(spanTexts, button);
         node.parentNode.classList.remove('align-items-baseline');
         node.parentNode.classList.add('align-items-end');
-        node.parentNode.replaceChild(div, node);
+        node.lastChild.classList.remove('slash-divider');
+        const div = document.createElement('li');
+        div.innerHTML = highlightSandhi(spanTexts);
+        div.classList.add('list-inline-item');
+        node.insertBefore(div, node.firstChild);
     }
     
     const style = document.createElement('style');
