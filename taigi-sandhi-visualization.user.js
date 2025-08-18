@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name        taigi-sandhi-visualization
 // @namespace   hey0wing
-// @version     1.0
+// @version     1.1
 // @description Highlights tone sandhi changes in Taiwanese romanization on the MOE dictionary site. Changed tones are marked in red with a tooltip showing possible base tone → sandhi tone.
 // @author      hey0wing
-// @match       http*://sutian.moe.edu.tw/*
+// @match       https://sutian.moe.edu.tw/*
 // @run-at       document-idle
 // @grant       none
 // @license      MIT
@@ -154,49 +154,51 @@
         });
     }
 
-    function highlightSandhi(text) {
-        const words = text.split(/\s+/);
+    function highlightSandhi(text, button = null) {
+        const words = text.replace('/',' / ').split(/\s+/);
         return `
-            <table style="border-collapse: collapse; text-align: center;">
-                <tr>
-                    ${words.map((v, i) => {
-                        let w1 = v.split('--')
-                        return w1.map((w2, j) => {
-                            let word = w2.split('-');
-                            return word.map((w3, k) => {
-                                var tone;
-                                if (k == word.length-1 && j != w1.length-1) {
-                                    // Word before 輕聲 neutral tone
-                                    tone = getTone({syllable: w3, neutral: 'before'})
-                                } else if (k == 0 && j != 0) {
-                                    // Word after 輕聲 neutral tone
-                                    tone = getTone({syllable: w3, neutral: 'after'})
-                                } else if (word.length === 1 && i != words.length-1) {
-                                    // Monosyllabic and not the final word
-                                    tone = getTone({syllable: w3, sandhi: true, suffix: words[i+1]})
-                                } else {
-                                    tone = getTone({syllable: w3, sandhi: k!==word.length-1, suffix: word[k+1]})
-                                }
-                                return `<td class="syllable-cell ${tone.color}"
-                                            data-color=${tone.color}
-                                            data-tone=${tone.tone}
-                                            data-sandhi=${tone.sandhi}>
-                                            ${tone['display']}
-                                        </td>`;
-                            }).join('<td></td>');
+            <tr>
+                ${words.map((v1, i) => {
+                    let w1 = v1.split('--')
+                    return w1.map((v2, j) => {
+                        let word = v2.split('-');
+                        return word.map((v3, k) => {
+                            if (v3 == '/') return '<td></td>'
+                            var tone;
+                            if (k == word.length-1 && j != w1.length-1) {
+                                // Word before 輕聲 neutral tone
+                                tone = getTone({syllable: v3, neutral: 'before'})
+                            } else if (k == 0 && j != 0) {
+                                // Word after 輕聲 neutral tone
+                                tone = getTone({syllable: v3, neutral: 'after'})
+                            } else if (word.length === 1 && i != words.length-1) {
+                                // Monosyllabic and not the final word
+                                tone = getTone({syllable: v3, sandhi: true, suffix: words[i+1]})
+                            } else {
+                                tone = getTone({syllable: v3, sandhi: k!==word.length-1, suffix: word[k+1]})
+                            }
+                            return `<td class="syllable-cell ${tone.color}"
+                                        data-color=${tone.color}
+                                        data-tone=${tone.tone}
+                                        data-sandhi=${tone.sandhi}>
+                                        ${tone['display']}
+                                    </td>`;
                         }).join('<td></td>');
-                    }).join('')}
-                </tr>
-                <tr>
-                    ${words.map((v1, i) => {
-                        return v1.split('--').map((v2, j) => {
-                            return v2.split('-').map((v3, k) => {
-                                return `<td>${v3}</td>`;
-                            }).join('<td>-</td>');
-                        }).join('<td>--</td>');
-                    }).join('')}
-                </tr>
-            </table>
+                    }).join('<td></td>');
+                }).join('') + 
+                (button ? '<td></td>' : '')}
+            </tr>
+            <tr>
+                ${words.map((v1, i) => {
+                    return v1.split('--').map((v2, j) => {
+                        return v2.split('-').map((v3, k) => {
+                            if (v3 == '/') return '<td>/</td>'
+                            return `<td>${v3}</td>`;
+                        }).join('<td>-</td>');
+                    }).join('<td>--</td>');
+                }).join('') + 
+                (button ? '<td>'+button.outerHTML+'</td>' : '')}
+            </tr>
         `;
     }
 
@@ -208,16 +210,46 @@
             }
             let text = node.nodeValue.trim();
             if (text && /[\-āáàâǎa̍ēéèêěe̍īíìîǐi̍ōóòôǒo̍ūúùûǔu̍͘]/.test(text) && !isCjk(text)) {
-                const div = document.createElement('div');
-                div.innerHTML = highlightSandhi(text);
+                const button = node.parentNode.parentNode.querySelector('button');
+                const div = document.createElement('table');
+                div.innerHTML = highlightSandhi(text, button);
+                // console.log(node.parentNode)
+                // if (node.parentNode.tagName === 'TD') {
+                //     console.log(node.parentNode)
+                //     node.parentNode.setAttribute("colspan", "1");
+                // }
                 node.parentNode.replaceChild(div, node);
+                if (button) button.remove()
             }
         } else if (node.nodeType === Node.ELEMENT_NODE) {
-            for (let i = 0; i < node.childNodes.length; i++) {
-                processPage(node.childNodes[i]);
+            if (node.tagName === 'UL' && ['fs-4', 'fw-bold', 'list-inline'].every(c => node.classList.contains(c))) {
+                replaceUL(node);
+            } else {
+                for (let i = 0; i < node.childNodes.length; i++) {
+                    processPage(node.childNodes[i]);
+                }
             }
         }
         return true
+    }
+
+    function replaceUL(node) {
+        // Find the last li and get its button
+        const listItems = node.querySelectorAll('li');
+        const lastLi = listItems[listItems.length - 1];
+        const button = lastLi ? lastLi.querySelector('button') : null;
+
+        // Get all span texts from li children and join with "/"
+        let spanTexts = Array.from(listItems)
+            .map(li => li.querySelector('span')?.textContent || '')
+            .filter(text => text)
+            .join('/');
+
+        const div = document.createElement('table');
+        div.innerHTML = highlightSandhi(spanTexts, button);
+        node.parentNode.classList.remove('align-items-baseline');
+        node.parentNode.classList.add('align-items-end');
+        node.parentNode.replaceChild(div, node);
     }
     
     const style = document.createElement('style');
@@ -282,8 +314,14 @@
             }
 
             const rect = e.target.getBoundingClientRect();
-            tooltip.style.left = rect.left + window.scrollX + rect.width / 2 - tooltip.offsetWidth / 2 + 'px';
-            tooltip.style.top = rect.top + window.scrollY - tooltip.offsetHeight - 10 + 'px'; 
+            let left = rect.left + window.scrollX + rect.width / 2 - tooltip.offsetWidth / 2;
+            let top = rect.top + window.scrollY - tooltip.offsetHeight - 10;
+
+            left = Math.max(0, Math.min(left, window.innerWidth - tooltip.offsetWidth));
+            top = top < 0 ? rect.top + window.scrollY + rect.height + 10 : top;
+
+            tooltip.style.left = `${left}px`;
+            tooltip.style.top = `${top}px`;
         } else {
             tooltip.style.display = 'none';
             tooltip.innerHTML = ''
