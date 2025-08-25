@@ -23,13 +23,15 @@ Highlights tone sandhi changes in Taiwanese romanization on the MOE dictionary s
     - Android: *Firefox* or *Edge*
     - iOS: Safari with *Userscript* (Free) or *Tampermonkey* (USD2.99)
 
-1. **Install a Userscript Manager**:
+1. **Install via Firefox Extension (Recommended for Firefox users)**:
+    - Add directly from the Firefox Add-ons store: [Taigi Sandhi Visualization](https://addons.mozilla.org/en-US/firefox/addon/taigi-sandhi-visualization/).
+
+2. **Install via Userscript Manager (Alternative)**:
     - Follow the [Greasy Fork tutorial](https://greasyfork.org/en/help/installing-user-scripts) to install one.
-    - Or install Tampermonkey (*Recommended*), Violentmonkey or Greasemonkey on your own
-2. **Add the Userscript**:
-    - **Greasy Fork (Recommended)**: Click [Here](https://greasyfork.org/en/scripts/545891-taigi-sandhi-visualization) and install the script directly by clicking "Install this script".
-    - Otherwise, copy the script directly from [`taigi-sandhi-visualization.user.js`](https://raw.githubusercontent.com/hey0wing/taigi-sandhi-visualization/main/taigi-sandhi-visualization.user.js).
-        - Open your userscript manager, create a new script, and paste the code.
+        - Or install Tampermonkey (*Recommended*), Violentmonkey or Greasemonkey on your own
+    -  **Add the Userscript**:
+        - **Greasy Fork (Recommended)**: Click [Here](https://greasyfork.org/en/scripts/545891-taigi-sandhi-visualization) and install the script directly by clicking "Install this script".
+        - Otherwise, copy the script directly from [`taigi-sandhi-visualization.user.js`](https://raw.githubusercontent.com/hey0wing/taigi-sandhi-visualization/main/taigi-sandhi-visualization.user.js), and paste the code.
 3. **Visit the MOE Dictionary**:
     - Navigate to [sutian.moe.edu.tw](https://sutian.moe.edu.tw/). The script will automatically process Taiwanese romanization text.
 

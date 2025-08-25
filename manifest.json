@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "taigi-sandhi-visualization",
+  "version": "1.2",
+
+  "description": "Highlights tone sandhi changes in Taiwanese romanization on the MOE dictionary site.",
+
+  "content_scripts": [
+    {
+      "matches": ["*://sutian.moe.edu.tw/*"],
+      "js": ["taigi-sandhi-visualization.user.js"]
+    }
+  ],
+
+  "browser_specific_settings": {
+    "gecko": {
+        "id": "hey0wing@gmail.com"
+    }
+  }
+}
