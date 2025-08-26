@@ -16,19 +16,19 @@
     
     function refreshLang() {
         const lang_region = document.getElementById('lang_setting')
-        if (!lang_region) return
-        lang_region.outerHTML = `
-            <div id="lang_setting" class="d-flex justify-content-between">
+        lang_region.outerHTML = GM_getValue('color') == 'blue' ? 
+            `<div id="lang_setting" class="d-flex justify-content-between"></div>` :
+            `<div id="lang_setting" class="d-flex justify-content-between">
                 <div class="w-25 d-flex justify-content-around">
                     ${[["N", "南"], ["S", "北"], ["C", "海"]].map(([en, zh], i) => {
-                        let color = GM_getValue('region', 'N')==en ? 'selected' : 'not_selected'
-                        let val = GM_getValue('lang', 'zh')=='zh' ? zh : en
+                        let color = GM_getValue('region')==en ? 'selected' : 'not_selected'
+                        let val = GM_getValue('lang')=='zh' ? zh : en
                         return `<button data-val="${en}" class="btn region ${color}">${val}</button>
                     `}).join('')}
                 </div>
                 <div class="w-25 d-flex justify-content-around">
                     ${[["zh", "中"], ["en", "Eng"]].map(([k, v], i) => {
-                        let color = GM_getValue('lang', 'zh')==k ? 'selected' : 'not_selected'
+                        let color = GM_getValue('lang')==k ? 'selected' : 'not_selected'
                         return `<button data-val="${k}" class="btn lang ${color}">${v}</button>
                     `}).join('')}
                 </div>
@@ -38,7 +38,6 @@
 
     function refreshSandhi() {
         const sandhi_diagram = document.getElementById('sandhi_diagram')
-        if (!sandhi_diagram) return
         if (GM_getValue('color') == 'red') {
             sandhi_diagram.innerHTML = `<svg width="250" height="150" xmlns="http://www.w3.org/2000/svg">
                 <!-- Grid of numbers -->
@@ -61,28 +60,29 @@
                 <!-- Horizontal arrows -->
                 <path id="2_1" d="M115 25 H35" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
                 <path id="4_2" d="M215 25 H135" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
-                <path id="7_3" d="M35 125 H115" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+                <path id="${GM_getValue('region')=='C'?'7_6':'7_3'}" d="M35 125 H115" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
                 <path id="8_3" d="M215 125 H135" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
                 
                 <!-- Vertical arrows -->
-                <path id="1_7" d="M25 35 V115" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+                ${GM_getValue('region')!=='C'&&`<path id="1_7" d="M25 35 V115" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>`}
                 <path id="3_2" d="${GM_getValue('region')=='C'?'M125 65 V35':'M125 115 V35'}" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
                 <path id="4_8" d="M225 35 V115" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
                 <path id="8_4" d="M225 115 V35" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
                 
                 <!-- Diagonal arrows -->
+                ${GM_getValue('region')=='C'&&`<path id="2_5" d="M115 35 L80 65" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>`}
                 <path id="${{'N': '5_7', 'S': '5_3', 'C': '5_6'}[GM_getValue('region')]}" 
-                    d="${GM_getValue('region')=='N'?'M70 85 L30 120':'M80 85 L120 120'}"
+                    d="${GM_getValue('region')=='N'?'M70 85 L35 115':'M80 85 L115 115'}"
                     stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
                 
                 <!-- arrow definition -->
                 <defs>
-                <marker id="arrow" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
-                <polygon points="0 0, 6 2, 0 4" fill="black"/>
-                </marker>
-                <marker id="arrow_red" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
-                <polygon points="0 0, 6 2, 0 4" fill="red"/>
-                </marker>
+                    <marker id="arrow" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
+                        <polygon points="0 0, 6 2, 0 4" fill="black"/>
+                    </marker>
+                    <marker id="arrow_red" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
+                        <polygon points="0 0, 6 2, 0 4" fill="red"/>
+                    </marker>
                 </defs>
             </svg>`
         } else {
@@ -126,7 +126,7 @@
         if (id == '8_4') document.getElementById('4_8').remove();
         if (['2_1', '3_1'].includes(id) && GM_getValue('color') == 'blue') id = '2,3_1'
 
-        if (id == '7_7' || id == '6_6') {
+        if (['1_1', '6_6', '7_7'].includes(id)) {
             const text = document.getElementById(id.slice(0,1));
             text.setAttribute('fill', GM_getValue('color'));
             text.setAttribute('font-size', 16);
@@ -137,17 +137,19 @@
         }
     }
 
-    let sandhi_isH = {
-        // suffix === á
-        true:   { 8: 5, 4: 2 },
-        // suffix !== á
-        false:  { 8: 3, 4: 2 },
-    }
     let sandhi_map = {
         // suffix === á
-        true:   { 1: 7, 2: 1, 3: 1, 5: 7, 7: 7, 4: 8, 8: 4 },
+        true: {
+            "N": { 1: 7, 2: 1, 3: 1, 4: 2, 5: 7, 7: 7, 8: 7 },
+            "S": { 1: 7, 2: 1, 3: 1, 4: 2, 5: 7, 7: 7, 8: 7 },
+            "C": { 1: 7, 2: 1, 3: 1, 4: 2, 5: 7, 7: 7, 8: 7 }, // No credible source was found
+        },
         // suffix !== á
-        false:  { 1: 7, 2: 1, 3: 2, 5: 7, 7: 3, 4: 8, 8: 4 },
+        false:  {
+            "N": { 1: 7, 2: 1, 3: 2, 4: 2, 5: 7, 7: 3, 8: 3 },
+            "S": { 1: 7, 2: 1, 3: 2, 4: 2, 5: 3, 7: 3, 8: 3 },
+            "C": { 1: 1, 2: 5, 3: 2, 4: 2, 5: 6, 6: 6, 7: 6, 8: 6 },
+        }
     }
 
     // Function to get the tone number from a syllable
@@ -163,9 +165,9 @@
                 tone =  code === 0x0301 ? 2 :
                         code === 0x0300 ? 3 :
                         code === 0x0302 ? 5 :
+                        code === 0x030C ? 6 :
                         code === 0x0304 ? 7 :
                         code === 0x030D ? 8 :
-                        code === 0x030C ? 6 :
                         code === 0x030B && 9
             }
         }
@@ -174,7 +176,7 @@
         if (neutral=='before') return { tone: tone, sandhi: null, color: 'green', display: tone }
         if (neutral=='after') return { tone: 0, sandhi: null, color: 'green', display: 0 }
 
-        let sandhi_t = (tone != 6 && tone != 9 && sandhi) ? (isH ? sandhi_isH[suffix == 'á'][tone] : sandhi_map[suffix == 'á'][tone]) : null
+        let sandhi_t = (tone != 9 && sandhi) ? ((isChecked && !isH) ? {8: 4, 4: 8}[tone] : sandhi_map[suffix == 'á'][GM_getValue('region')][tone]) : null
         return {
             tone: tone,
             sandhi: sandhi_t,
@@ -356,6 +358,10 @@
         refreshLang()
         refreshSandhi()
     });
+
+    // Default language & region settings
+    GM_setValue('lang', GM_getValue('lang', 'zh'))
+    GM_setValue('region', GM_getValue('region', 'S'))
 
     // Run initially and observe for changes
     console.log("taigi-sandhi-visualization")
