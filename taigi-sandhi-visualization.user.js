@@ -1,97 +1,141 @@
 // ==UserScript==
 // @name        taigi-sandhi-visualization
 // @namespace   hey0wing
-// @version     1.2
+// @version     1.3
 // @description Highlights tone sandhi changes in Taiwanese romanization on the MOE dictionary site. Changed tones are marked in red with a tooltip showing possible base tone → sandhi tone.
 // @author      hey0wing
 // @match       https://sutian.moe.edu.tw/*
 // @run-at      document-idle
-// @grant       none
+// @grant        GM_setValue
+// @grant        GM_getValue
 // @license     MIT
 // ==/UserScript==
 
 (() => {
     'use strict';
     
-    const sandhi_diagram_red = `
-        <svg id="sandhi_red" width="250" height="150" xmlns="http://www.w3.org/2000/svg">
-            <!-- Grid of numbers -->
-            <text id="1" x="25" y="25" font-size="12" text-anchor="middle" alignment-baseline="central">1</text>
-            <text id="2" x="125" y="25" font-size="12" text-anchor="middle" alignment-baseline="central">2</text>
-            <text id="4" x="225" y="25" font-size="12" text-anchor="middle" alignment-baseline="central">4</text>
-            <text id="5" x="75" y="75" font-size="12" text-anchor="middle" alignment-baseline="central">5</text>
-            <text id="7" x="25" y="125" font-size="12" text-anchor="middle" alignment-baseline="central">7</text>
-            <text id="3" x="125" y="125" font-size="12" text-anchor="middle" alignment-baseline="central">3</text>
-            <text id="8" x="225" y="125" font-size="12" text-anchor="middle" alignment-baseline="central">8</text>
+    function refreshLang() {
+        const lang_region = document.getElementById('lang_setting')
+        if (!lang_region) return
+        lang_region.outerHTML = `
+            <div id="lang_setting" class="d-flex justify-content-between">
+                <div class="w-25 d-flex justify-content-around">
+                    ${[["N", "南"], ["S", "北"], ["C", "海"]].map(([en, zh], i) => {
+                        let color = GM_getValue('region', 'N')==en ? 'selected' : 'not_selected'
+                        let val = GM_getValue('lang', 'zh')=='zh' ? zh : en
+                        return `<button data-val="${en}" class="btn region ${color}">${val}</button>
+                    `}).join('')}
+                </div>
+                <div class="w-25 d-flex justify-content-around">
+                    ${[["zh", "中"], ["en", "Eng"]].map(([k, v], i) => {
+                        let color = GM_getValue('lang', 'zh')==k ? 'selected' : 'not_selected'
+                        return `<button data-val="${k}" class="btn lang ${color}">${v}</button>
+                    `}).join('')}
+                </div>
+            </div>
+        `
+    }
 
-            <text id="4h" x="175" y="15" font-size="12" text-anchor="middle" alignment-baseline="central">-h</text>
-            <text id="8h" x="175" y="115" font-size="12" text-anchor="middle" alignment-baseline="central">-h</text>
-            <text id="ptk" x="205" y="75" font-size="12" text-anchor="middle" alignment-baseline="central">-p,t,k</text>
-
-            <!-- Horizontal arrows -->
-            <path id="2_1" d="M115 25 H35" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
-            <path id="4_2" d="M215 25 H135" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
-            <path id="7_3" d="M35 125 H115" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
-            <path id="8_3" d="M215 125 H135" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
-
-            <!-- Vertical arrows -->
-            <path id="1_7" d="M25 35 V115" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
-            <path id="3_2" d="M125 115 V35" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
-            <path id="4_8" d="M225 35 V115" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
-            <path id="8_4" d="M225 115 V35" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
-
-            <!-- Diagonal arrows -->
-            <path id="5_7" d="M70 85 L30 120" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
-            <path id="5_3" d="M80 85 L120 120" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
-
-            <!-- arrow definition -->
-            <defs>
+    function refreshSandhi() {
+        const sandhi_diagram = document.getElementById('sandhi_diagram')
+        if (!sandhi_diagram) return
+        if (GM_getValue('color') == 'red') {
+            sandhi_diagram.innerHTML = `<svg width="250" height="150" xmlns="http://www.w3.org/2000/svg">
+                <!-- Grid of numbers -->
+                <text id="1" x="25" y="25" font-size="12" text-anchor="middle" alignment-baseline="central">1</text>
+                <text id="2" x="125" y="25" font-size="12" text-anchor="middle" alignment-baseline="central">2</text>
+                <text id="4" x="225" y="25" font-size="12" text-anchor="middle" alignment-baseline="central">4</text>
+                <text id="5" x="75" y="75" font-size="12" text-anchor="middle" alignment-baseline="central">5</text>
+                <text id="7" x="25" y="125" font-size="12" text-anchor="middle" alignment-baseline="central">7</text>
+                ${GM_getValue('region')=='C' ? 
+                    `<text id="3" x="125" y="75" font-size="12" text-anchor="middle" alignment-baseline="central">3</text>
+                    <text id="6" x="125" y="125" font-size="12" text-anchor="middle" alignment-baseline="central">6</text>` :
+                    `<text id="3" x="125" y="125" font-size="12" text-anchor="middle" alignment-baseline="central">3</text>`
+                }
+                <text id="8" x="225" y="125" font-size="12" text-anchor="middle" alignment-baseline="central">8</text>
+                
+                <text id="4h" x="175" y="15" font-size="12" text-anchor="middle" alignment-baseline="central">-h</text>
+                <text id="8h" x="175" y="115" font-size="12" text-anchor="middle" alignment-baseline="central">-h</text>
+                <text id="ptk" x="205" y="75" font-size="12" text-anchor="middle" alignment-baseline="central">-p,t,k</text>
+                
+                <!-- Horizontal arrows -->
+                <path id="2_1" d="M115 25 H35" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+                <path id="4_2" d="M215 25 H135" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+                <path id="7_3" d="M35 125 H115" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+                <path id="8_3" d="M215 125 H135" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+                
+                <!-- Vertical arrows -->
+                <path id="1_7" d="M25 35 V115" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+                <path id="3_2" d="${GM_getValue('region')=='C'?'M125 65 V35':'M125 115 V35'}" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+                <path id="4_8" d="M225 35 V115" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+                <path id="8_4" d="M225 115 V35" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+                
+                <!-- Diagonal arrows -->
+                <path id="${{'N': '5_7', 'S': '5_3', 'C': '5_6'}[GM_getValue('region')]}" 
+                    d="${GM_getValue('region')=='N'?'M70 85 L30 120':'M80 85 L120 120'}"
+                    stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+                
+                <!-- arrow definition -->
+                <defs>
                 <marker id="arrow" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
-                    <polygon points="0 0, 6 2, 0 4" fill="black"/>
+                <polygon points="0 0, 6 2, 0 4" fill="black"/>
                 </marker>
                 <marker id="arrow_red" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
-                    <polygon points="0 0, 6 2, 0 4" fill="red"/>
+                <polygon points="0 0, 6 2, 0 4" fill="red"/>
                 </marker>
-            </defs>
-        </svg>
-    `
-    
-    const sandhi_diagram_blue = `
-        <svg id="sandhi_blue" width="250" height="150" xmlns="http://www.w3.org/2000/svg">
-            <!-- Grid of numbers -->
-            <text id="2,3" x="25" y="25" font-size="12" text-anchor="middle" alignment-baseline="central">2,3</text>
-            <text id="1" x="125" y="25" font-size="12" text-anchor="middle" alignment-baseline="central">1</text>
-            <text id="4" x="225" y="25" font-size="12" text-anchor="middle" alignment-baseline="central">4</text>
-            <text id="5" x="25" y="125" font-size="12" text-anchor="middle" alignment-baseline="central">5</text>
-            <text id="7" x="125" y="125" font-size="12" text-anchor="middle" alignment-baseline="central">7</text>
-            <text id="8" x="225" y="125" font-size="12" text-anchor="middle" alignment-baseline="central">8</text>
+                </defs>
+            </svg>`
+        } else {
+            sandhi_diagram.innerHTML = `<svg width="250" height="150" xmlns="http://www.w3.org/2000/svg">
+                <!-- Grid of numbers -->
+                <text id="2,3" x="25" y="25" font-size="12" text-anchor="middle" alignment-baseline="central">2,3</text>
+                <text id="1" x="125" y="25" font-size="12" text-anchor="middle" alignment-baseline="central">1</text>
+                <text id="4" x="225" y="25" font-size="12" text-anchor="middle" alignment-baseline="central">4</text>
+                <text id="5" x="25" y="125" font-size="12" text-anchor="middle" alignment-baseline="central">5</text>
+                <text id="7" x="125" y="125" font-size="12" text-anchor="middle" alignment-baseline="central">7</text>
+                <text id="8" x="225" y="125" font-size="12" text-anchor="middle" alignment-baseline="central">8</text>
 
-            <text id="4h" x="175" y="15" font-size="12" text-anchor="middle" alignment-baseline="central">-h</text>
-            <text id="8h" x="175" y="115" font-size="12" text-anchor="middle" alignment-baseline="central">-h</text>
-            <text id="ptk" x="205" y="75" font-size="12" text-anchor="middle" alignment-baseline="central">-p,t,k</text>
+                <text id="4h" x="175" y="15" font-size="12" text-anchor="middle" alignment-baseline="central">-h</text>
+                <text id="8h" x="175" y="115" font-size="12" text-anchor="middle" alignment-baseline="central">-h</text>
+                <text id="ptk" x="205" y="75" font-size="12" text-anchor="middle" alignment-baseline="central">-p,t,k</text>
 
-            <!-- Horizontal arrows -->
-            <path id="2,3_1" d="M40 25 H115" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
-            <path id="4_1" d="M215 25 H135" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
-            <path id="5_7" d="M35 125 H115" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
-            <path id="8_7" d="M215 125 H135" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+                <!-- Horizontal arrows -->
+                <path id="2,3_1" d="M40 25 H115" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+                <path id="4_1" d="M215 25 H135" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+                <path id="5_7" d="M35 125 H115" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+                <path id="8_7" d="M215 125 H135" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
 
-            <!-- Vertical arrows -->
-            <path id="1_7" d="M125 35 V115" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
-            <path id="4_8" d="M225 35 V115" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
-            <path id="8_4" d="M225 115 V35" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+                <!-- Vertical arrows -->
+                <path id="1_7" d="M125 35 V115" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+                <path id="4_8" d="M225 35 V115" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+                <path id="8_4" d="M225 115 V35" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
 
-            <!-- arrow definition -->
-            <defs>
-                <marker id="arrow" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
-                    <polygon points="0 0, 6 2, 0 4" fill="black"/>
-                </marker>
-                <marker id="arrow_blue" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
-                    <polygon points="0 0, 6 2, 0 4" fill="blue"/>
-                </marker>
-            </defs>
-        </svg>
-    `
+                <!-- arrow definition -->
+                <defs>
+                    <marker id="arrow" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
+                        <polygon points="0 0, 6 2, 0 4" fill="black"/>
+                    </marker>
+                    <marker id="arrow_blue" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
+                        <polygon points="0 0, 6 2, 0 4" fill="blue"/>
+                    </marker>
+                </defs>
+            </svg>`
+        }
+        let id = GM_getValue('id')
+        if (id == '4_8') document.getElementById('8_4').remove();
+        if (id == '8_4') document.getElementById('4_8').remove();
+        if (['2_1', '3_1'].includes(id) && GM_getValue('color') == 'blue') id = '2,3_1'
+
+        if (id == '7_7' || id == '6_6') {
+            const text = document.getElementById(id.slice(0,1));
+            text.setAttribute('fill', GM_getValue('color'));
+            text.setAttribute('font-size', 16);
+        } else {
+            const path = document.getElementById(id);
+            path.setAttribute('stroke', GM_getValue('color'));
+            path.setAttribute('marker-end', `url(#arrow_${GM_getValue('color')})`);
+        }
+    }
 
     let sandhi_isH = {
         // suffix === á
@@ -247,6 +291,16 @@
             font-size: 12px;
             z-index: 100;
         }
+        .btn.lang, .btn.region {
+            padding: 0;
+            font-size: .8rem;
+        }
+        .selected {
+            text-decoration: underline;
+        }
+        .not_selected {
+            color: grey;
+        }
         .syllable-cell {
             font-size: .8rem;
             text-align: center;
@@ -273,28 +327,15 @@
     const tooltip = document.createElement('div');
     tooltip.id = 'custom-tooltip';
     tooltip.className = 'custom-tooltip';
+    tooltip.innerHTML = '<div id="lang_setting"></div>' + '<div id="sandhi_diagram"></div>'
     document.body.appendChild(tooltip);
 
     document.addEventListener('click', (e) => {
         const tooltip = document.getElementById('custom-tooltip');
         if (e.target.classList.contains('syllable-cell') && e.target.dataset.sandhi != 'null') {
             tooltip.style.display = 'block';
-            tooltip.innerHTML = e.target.dataset.color == 'red' ? sandhi_diagram_red : sandhi_diagram_blue
-            
-            var id = `${e.target.dataset.tone}_${e.target.dataset.sandhi}`;
-            if (id == '4_8') document.getElementById('8_4').remove();
-            if (id == '8_4') document.getElementById('4_8').remove();
-            if (['2_1', '3_1'].includes(id) && e.target.dataset.color == 'blue') id = '2,3_1'
-
-            if (id == '7_7') {
-                const text = document.getElementById('7');
-                text.setAttribute('fill', e.target.dataset.color);
-                text.setAttribute('font-size', 16);
-            } else {
-                const path = document.getElementById(id);
-                path.setAttribute('stroke', e.target.dataset.color);
-                path.setAttribute('marker-end', `url(#arrow_${e.target.dataset.color})`);
-            }
+            GM_setValue('id', `${e.target.dataset.tone}_${e.target.dataset.sandhi}`)
+            GM_setValue('color', e.target.dataset.color)
 
             const rect = e.target.getBoundingClientRect();
             let left = rect.left + window.scrollX + rect.width / 2 - tooltip.offsetWidth / 2;
@@ -305,10 +346,15 @@
 
             tooltip.style.left = `${left}px`;
             tooltip.style.top = `${top}px`;
-        } else {
+        } else if (['btn', 'lang'].every(c => e.target.classList.contains(c))) {
+            GM_setValue('lang', e.target.dataset.val)
+        } else if (['btn', 'region'].every(c => e.target.classList.contains(c))) {
+            GM_setValue('region', e.target.dataset.val)
+        } else if (!tooltip.contains(e.target)) {
             tooltip.style.display = 'none';
-            tooltip.innerHTML = ''
         }
+        refreshLang()
+        refreshSandhi()
     });
 
     // Run initially and observe for changes

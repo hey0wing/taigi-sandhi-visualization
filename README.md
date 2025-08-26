@@ -9,7 +9,10 @@ Highlights tone sandhi changes in Taiwanese romanization on the MOE dictionary s
 - **Tone Sandhi Highlighting**: 
     - Automatically detects and highlights tone changes in Taiwanese romanization text on the MOE dictionary site.
     - Tone changes for every syllable except for the last one in a phrase.
-    - Only **南部 / Southern (漳州腔 / Zhangzhou)** sandhi is supported
+    - Tone sandhi for three common [accents](https://zh.wikipedia.org/zh-hk/閩南語音系#一般聲調)
+        - **南部腔 Southern (偏漳腔 Zhangzhou-leaning)**
+        - **北部腔 Northern (偏泉腔 Quanzhou-leaning)**
+        - **海口腔 Seaport / Coastal (泉州腔 Quanzhou)**
 - **Color Coding**:
     - **Red**: Normal tone sandhi.
     - **Blue**: Tone sandhi before the `-á` suffix.
@@ -37,9 +40,6 @@ Highlights tone sandhi changes in Taiwanese romanization on the MOE dictionary s
 
 ## Planned Improvements
 
-- Add tone sandhi for [other regions](https://zh.wikipedia.org/zh-hk/閩南語音系#一般聲調)
-    - **北部 / Northern (偏泉腔 / Quanzhou-alike)** (5 -> 3)
-    - **海口 / Coastal (泉州腔 / Quanzhou)** (2 -> 5; 5,6,7,8 -> 6)
 - Add Chao's Tone letter / Pitch contour for visualization
     - Real-time audio conversion(?)
 
