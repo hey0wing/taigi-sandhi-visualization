@@ -36,6 +36,17 @@
         `
     }
 
+    function refreshDisplay(old_val, new_val) {
+        const syllableCells = document.getElementsByClassName('tone');
+        Array.from(syllableCells).forEach(syl => {
+            const t = syl.dataset[`sandhi_${new_val.toLowerCase()}`]
+            if (GM_getValue('id') == `${syl.dataset.tone}_${syl.dataset[`sandhi_${old_val.toLowerCase()}`]}`) {
+                GM_setValue('id',`${syl.dataset.tone}_${t}`)
+            }
+            syl.innerHTML = t;
+        });
+    }
+
     function refreshSandhi() {
         const sandhi_diagram = document.getElementById('sandhi_diagram')
         if (GM_getValue('color') == 'red') {
@@ -60,8 +71,8 @@
                 <!-- Horizontal arrows -->
                 <path id="2_1" d="M115 25 H35" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
                 <path id="4_2" d="M215 25 H135" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
-                <path id="${GM_getValue('region')=='C'?'7_6':'7_3'}" d="M35 125 H115" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
-                <path id="8_3" d="M215 125 H135" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+                <path id="7_${sandhi_map[false][GM_getValue('region')][7]}" d="M35 125 H115" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+                <path id="8_${sandhi_map[false][GM_getValue('region')][8]}" d="M215 125 H135" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
                 
                 <!-- Vertical arrows -->
                 ${GM_getValue('region')!=='C'&&`<path id="1_7" d="M25 35 V115" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>`}
@@ -140,20 +151,20 @@
     let sandhi_map = {
         // suffix === á
         true: {
-            "N": { 1: 7, 2: 1, 3: 1, 4: 2, 5: 7, 7: 7, 8: 7 },
-            "S": { 1: 7, 2: 1, 3: 1, 4: 2, 5: 7, 7: 7, 8: 7 },
-            "C": { 1: 7, 2: 1, 3: 1, 4: 2, 5: 7, 7: 7, 8: 7 }, // No credible source was found
+            "N": { 1: 7, 2: 1, 3: 1, 4: 2, 5: 7, 6: 6, 7: 7, 8: 7, 9: 9 },
+            "S": { 1: 7, 2: 1, 3: 1, 4: 2, 5: 7, 6: 6, 7: 7, 8: 7, 9: 9 },
+            "C": { 1: 7, 2: 1, 3: 1, 4: 2, 5: 7, 6: 6, 7: 7, 8: 7, 9: 9 }, // No credible source was found
         },
         // suffix !== á
         false:  {
-            "N": { 1: 7, 2: 1, 3: 2, 4: 2, 5: 7, 7: 3, 8: 3 },
-            "S": { 1: 7, 2: 1, 3: 2, 4: 2, 5: 3, 7: 3, 8: 3 },
-            "C": { 1: 1, 2: 5, 3: 2, 4: 2, 5: 6, 6: 6, 7: 6, 8: 6 },
+            "N": { 1: 7, 2: 1, 3: 2, 4: 2, 5: 7, 6: 6, 7: 3, 8: 3, 9: 9 },
+            "S": { 1: 7, 2: 1, 3: 2, 4: 2, 5: 3, 6: 6, 7: 3, 8: 3, 9: 9 },
+            "C": { 1: 1, 2: 5, 3: 2, 4: 2, 5: 6, 6: 6, 7: 6, 8: 6, 9: 9 },
         }
     }
 
     // Function to get the tone number from a syllable
-    function getTone({syllable='', sandhi='', suffix='', neutral=null}) {
+    function getTone({syllable='', sandhi=null, suffix='', neutral=null}) {
         const isChecked = /[pthk]\.?$/.test(syllable);
         const isH = /[h]$/.test(syllable);
         const normalized = syllable.normalize('NFD');
@@ -176,13 +187,15 @@
         if (neutral=='before') return { tone: tone, sandhi: null, color: 'green', display: tone }
         if (neutral=='after') return { tone: 0, sandhi: null, color: 'green', display: 0 }
 
-        let sandhi_t = (tone != 9 && sandhi) ? ((isChecked && !isH) ? {8: 4, 4: 8}[tone] : sandhi_map[suffix == 'á'][GM_getValue('region')][tone]) : null
-        return {
+        let syl = {
             tone: tone,
-            sandhi: sandhi_t,
-            color: sandhi_t ? (suffix == 'á' ? 'blue': 'red') : null,
-            display: sandhi_t ? sandhi_t : tone,
+            color: (tone != 9 && sandhi) ? (suffix == 'á' ? 'blue': 'red') : null,
         }
+        Object.entries(sandhi_map[suffix == 'á']).forEach(([k, v]) => {
+            syl[`sandhi_${k}`] = v[tone]
+        })
+
+        return syl
     }
 
     // Modified from https://github.com/andreihar/taibun.js
@@ -224,12 +237,15 @@
                             tone = getTone({ syllable: v3, sandhi: k !== word.length - 1, suffix: word[k + 1] });
                         }
                         return `
-                            <div>
-                                <div class="syllable-cell ${tone.color}" 
-                                    data-color="${tone.color}" 
-                                    data-tone="${tone.tone}" 
-                                    data-sandhi="${tone.sandhi}">
-                                    ${tone.display}
+                            <div class="syllable-cell">
+                                <div class="tone ${tone.color}" 
+                                    data-color="${tone.color}"
+                                    data-tone="${tone.tone}"
+                                    data-sandhi_N="${tone.sandhi_N}"
+                                    data-sandhi_S="${tone.sandhi_S}"
+                                    data-sandhi_C="${tone.sandhi_C}"
+                                >
+                                    ${tone[`sandhi_${GM_getValue('region')}`]}
                                 </div>
                                 <div>${v3}</div>
                             </div>
@@ -252,7 +268,7 @@
                 div.innerHTML = highlightSandhi(text);
                 node.parentNode.replaceChild(div, node);
             }
-        } else if (node.nodeType === Node.ELEMENT_NODE) {
+        } else if (node.nodeType === Node.ELEMENT_NODE && !node.classList.contains('syllable-cell')) {
             if (node.tagName === 'UL' && ['fs-4', 'fw-bold', 'list-inline'].every(c => node.classList.contains(c))) {
                 replaceUL(node);
             } else {
@@ -303,23 +319,23 @@
         .not_selected {
             color: grey;
         }
-        .syllable-cell {
+        .tone {
             font-size: .8rem;
             text-align: center;
         }
-        .syllable-cell.red {
+        .tone.red {
             color: red;
             font-weight: 700;
         }
-        .syllable-cell.blue {
+        .tone.blue {
             color: blue;
             font-weight: 700;
         }
-        .syllable-cell.green {
+        .tone.green {
             color: green;
             font-weight: 700;
         }
-        .syllable-cell.red:hover, .syllable-cell.blue:hover {
+        .tone.red:hover, .tone.blue:hover {
             cursor: pointer;
             background-color: #f0f0f0;
         }
@@ -334,9 +350,9 @@
 
     document.addEventListener('click', (e) => {
         const tooltip = document.getElementById('custom-tooltip');
-        if (e.target.classList.contains('syllable-cell') && e.target.dataset.sandhi != 'null') {
+        if (e.target.classList.contains('tone') && e.target.dataset.color != 'null') {
             tooltip.style.display = 'block';
-            GM_setValue('id', `${e.target.dataset.tone}_${e.target.dataset.sandhi}`)
+            GM_setValue('id', `${e.target.dataset.tone}_${e.target.dataset[`sandhi_${GM_getValue('region').toLowerCase()}`]}`)
             GM_setValue('color', e.target.dataset.color)
 
             const rect = e.target.getBoundingClientRect();
@@ -351,6 +367,7 @@
         } else if (['btn', 'lang'].every(c => e.target.classList.contains(c))) {
             GM_setValue('lang', e.target.dataset.val)
         } else if (['btn', 'region'].every(c => e.target.classList.contains(c))) {
+            refreshDisplay(GM_getValue('region'), e.target.dataset.val)
             GM_setValue('region', e.target.dataset.val)
         } else if (!tooltip.contains(e.target)) {
             tooltip.style.display = 'none';
