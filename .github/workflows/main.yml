@@ -1,49 +1,17 @@
 name: Publish Browser Extension
-
 on:
   push:
     branches:
       - main
-  workflow_dispatch:
-
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install dependencies
-        run: npm install publish-browser-extension --save-dev
-
       - name: Create extension ZIP
         run: zip -r extension.zip manifest.json taigi-sandhi-visualization.user.js store_listing
-
-      - name: Publish to Browser Extensions
-        uses: aklinker1/publish-browser-extension@3.0.1
+      - name: Browser Platform Publish
+        uses: PlasmoHQ/bpp@v3
         with:
-          dryRun: false
-          chrome: |
-            {
-              "zip": "extension.zip",
-              "extensionId": "${{ secrets.CHROME_EXTENSION_ID }}",
-              "clientId": "${{ secrets.CHROME_CLIENT_ID }}",
-              "clientSecret": "${{ secrets.CHROME_CLIENT_SECRET }}",
-              "refreshToken": "${{ secrets.CHROME_REFRESH_TOKEN }}",
-              "publishTarget": "default",
-              "skipSubmitReview": false
-            }
-          firefox: |
-            {
-              "zip": "extension.zip",
-              "sourcesZip": "sources.zip",
-              "extensionId": "${{ secrets.FIREFOX_EXTENSION_ID }}",
-              "jwtIssuer": "${{ secrets.FIREFOX_JWT_ISSUER }}",
-              "jwtSecret": "${{ secrets.FIREFOX_JWT_SECRET }}",
-              "channel": "listed"
-            }
+          keys: ${{ secrets.BPP_KEYS }}
