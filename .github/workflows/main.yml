@@ -1,0 +1,17 @@
+name: Publish Browser Extension
+on:
+  push:
+    branches:
+      - main
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Create extension ZIP
+        run: zip -r extension.zip manifest.json taigi-sandhi-visualization.user.js store_listing
+      - name: Browser Platform Publish
+        uses: PlasmoHQ/bpp@v3
+        with:
+          keys: ${{ secrets.BPP_KEYS }}

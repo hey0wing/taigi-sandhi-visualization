@@ -1,6 +1,6 @@
 # 台語變調視像化 taigi-sandhi-visualization
 
-Highlights tone sandhi changes in Taiwanese romanization on the MOE dictionary site.
+A browser extension/userscript that highlights tone sandhi changes in Taiwanese Hokkien romanization on the [MOE Taiwanese Dictionary](https://sutian.moe.edu.tw/).
 
 ![example](https://raw.githubusercontent.com/hey0wing/taigi-sandhi-visualization/main/readme/example.gif)
 
@@ -21,22 +21,24 @@ Highlights tone sandhi changes in Taiwanese romanization on the MOE dictionary s
 
 ## Installation
 
-- **Note**: Device & browser compatibility
-    - Desktop: Chrome, Brave, Safari, Firefox, Edge
-    - Android: *Firefox* or *Edge*
-    - iOS: Safari with *Userscript* (Free) or *Tampermonkey* (USD2.99)
+### Option 1: Browser Extension
+- Install from the [Firefox Add-ons Store](https://addons.mozilla.org/en-US/firefox/addon/taigi-sandhi-visualization/) or [Chrome Web Store](https://chromewebstore.google.com/detail/ljkpjdedglglmhnggjhhapmdknjelppa).
 
-1. **Install via Firefox Extension (Recommended for Firefox users)**:
-    - Add directly from the Firefox Add-ons store: [Taigi Sandhi Visualization](https://addons.mozilla.org/en-US/firefox/addon/taigi-sandhi-visualization/).
+### Option 2: Userscript Manager
 
-2. **Install via Userscript Manager (Alternative)**:
+| Platform | Supported Browsers | Userscript Manager |
+|----------|--------------------|--------------------|
+| Desktop  | Chrome, Brave, Safari, Firefox, Edge | Tampermonkey, Violentmonkey, Greasemonkey |
+| Android  | Firefox, Edge      | Tampermonkey, Violentmonkey |
+| iOS      | Safari             | Userscript (Free), Tampermonkey (USD 2.99) |
+
+
+1. **Install via Userscript Manager (Alternative)**:
     - Follow the [Greasy Fork tutorial](https://greasyfork.org/en/help/installing-user-scripts) to install one.
         - Or install Tampermonkey (*Recommended*), Violentmonkey or Greasemonkey on your own
     -  **Add the Userscript**:
         - **Greasy Fork (Recommended)**: Click [Here](https://greasyfork.org/en/scripts/545891-taigi-sandhi-visualization) and install the script directly by clicking "Install this script".
         - Otherwise, copy the script directly from [`taigi-sandhi-visualization.user.js`](https://raw.githubusercontent.com/hey0wing/taigi-sandhi-visualization/main/taigi-sandhi-visualization.user.js), and paste the code.
-3. **Visit the MOE Dictionary**:
-    - Navigate to [sutian.moe.edu.tw](https://sutian.moe.edu.tw/). The script will automatically process Taiwanese romanization text.
 
 ## Planned Improvements
 
@@ -47,3 +49,6 @@ Highlights tone sandhi changes in Taiwanese romanization on the MOE dictionary s
 
 - Inspired by [https://github.com/Aiuanyu/KIPSutian-autoplay](https://github.com/Aiuanyu/KIPSutian-autoplay)
 - Inspired by [https://github.com/andreihar/taibun.js](https://github.com/andreihar/taibun.js)
+
+## License
+This project is licensed under the [MIT License](LICENSE).
