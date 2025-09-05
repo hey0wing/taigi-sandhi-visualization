@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        taigi-sandhi-visualization
 // @namespace   hey0wing
-// @version     1.3
+// @version     1.5
 // @description Highlights tone sandhi changes in Taiwanese romanization on the MOE dictionary site. Changed tones are marked in red with a tooltip showing possible base tone → sandhi tone.
 // @author      hey0wing
 // @match       https://sutian.moe.edu.tw/*
@@ -11,24 +11,59 @@
 // @license     MIT
 // ==/UserScript==
 
-(() => {
+(async () => {
     'use strict';
     
+    // Default settings
+    const isChromeExtension = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id;
+    const isGreasemonkey4Plus = typeof GM !== 'undefined' && typeof GM.setValue !== 'undefined';
+    const isTampermonkeyCompatible = typeof GM_setValue !== 'undefined';
+    const setValue = async (key, value) => {
+        if (isChromeExtension) {
+            await chrome.storage.local.set({ [key]: value });
+        } else if (isGreasemonkey4Plus) {
+            await GM.setValue(key, value);
+        } else if (isTampermonkeyCompatible) {
+            GM_setValue(key, value);
+        } else {
+            throw new Error('No compatible storage API available');
+        }
+    };
+    const getValue = async (key, defaultValue) => {
+        if (isChromeExtension) {
+            return new Promise((resolve) => {
+                chrome.storage.local.get([key], (result) => {
+                    resolve(result[key] !== undefined ? result[key] : defaultValue);
+                });
+            });
+        } else if (isGreasemonkey4Plus) {
+            return await GM.getValue(key, defaultValue);
+        } else if (isTampermonkeyCompatible) {
+            return Promise.resolve(GM_getValue(key, defaultValue));
+        } else {
+            throw new Error('No compatible storage API available');
+        }
+    };
+    var lang = await getValue('lang') || 'zh'
+    var region = await getValue('region') || 'S'
+    var syl_id = await getValue('syl_id') || ''
+    var syl_color = await getValue('syl_color') || ''
+
     function refreshLang() {
         const lang_region = document.getElementById('lang_setting')
-        lang_region.outerHTML = GM_getValue('color') == 'blue' ? 
+        lang_region.outerHTML = syl_color == 'blue' ? 
             `<div id="lang_setting" class="d-flex justify-content-between"></div>` :
             `<div id="lang_setting" class="d-flex justify-content-between">
                 <div class="w-25 d-flex justify-content-around">
                     ${[["N", "南"], ["S", "北"], ["C", "海"]].map(([en, zh], i) => {
-                        let color = GM_getValue('region')==en ? 'selected' : 'not_selected'
-                        let val = GM_getValue('lang')=='zh' ? zh : en
+                        let color = region==en ? 'selected' : 'not_selected'
+                        let val = lang=='zh' ? zh : en
                         return `<button data-val="${en}" class="btn region ${color}">${val}</button>
                     `}).join('')}
                 </div>
                 <div class="w-25 d-flex justify-content-around">
                     ${[["zh", "中"], ["en", "Eng"]].map(([k, v], i) => {
-                        let color = GM_getValue('lang')==k ? 'selected' : 'not_selected'
+                        let color = lang==k ? 'selected' : 'not_selected'
                         return `<button data-val="${k}" class="btn lang ${color}">${v}</button>
                     `}).join('')}
                 </div>
@@ -40,8 +75,8 @@
         const syllableCells = document.getElementsByClassName('tone');
         Array.from(syllableCells).forEach(syl => {
             const t = syl.dataset[`sandhi_${new_val.toLowerCase()}`]
-            if (GM_getValue('id') == `${syl.dataset.tone}_${syl.dataset[`sandhi_${old_val.toLowerCase()}`]}`) {
-                GM_setValue('id',`${syl.dataset.tone}_${t}`)
+            if (syl_id == `${syl.dataset.tone}_${syl.dataset[`sandhi_${old_val.toLowerCase()}`]}`) {
+                syl_id = `${syl.dataset.tone}_${t}`
             }
             syl.innerHTML = t;
         });
@@ -49,7 +84,7 @@
 
     function refreshSandhi() {
         const sandhi_diagram = document.getElementById('sandhi_diagram')
-        if (GM_getValue('color') == 'red') {
+        if (syl_color == 'red') {
             sandhi_diagram.innerHTML = `<svg width="250" height="150" xmlns="http://www.w3.org/2000/svg">
                 <!-- Grid of numbers -->
                 <text id="1" x="25" y="25" font-size="12" text-anchor="middle" alignment-baseline="central">1</text>
@@ -57,7 +92,7 @@
                 <text id="4" x="225" y="25" font-size="12" text-anchor="middle" alignment-baseline="central">4</text>
                 <text id="5" x="75" y="75" font-size="12" text-anchor="middle" alignment-baseline="central">5</text>
                 <text id="7" x="25" y="125" font-size="12" text-anchor="middle" alignment-baseline="central">7</text>
-                ${GM_getValue('region')=='C' ? 
+                ${region=='C' ? 
                     `<text id="3" x="125" y="75" font-size="12" text-anchor="middle" alignment-baseline="central">3</text>
                     <text id="6" x="125" y="125" font-size="12" text-anchor="middle" alignment-baseline="central">6</text>` :
                     `<text id="3" x="125" y="125" font-size="12" text-anchor="middle" alignment-baseline="central">3</text>`
@@ -71,19 +106,19 @@
                 <!-- Horizontal arrows -->
                 <path id="2_1" d="M115 25 H35" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
                 <path id="4_2" d="M215 25 H135" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
-                <path id="7_${sandhi_map[false][GM_getValue('region')][7]}" d="M35 125 H115" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
-                <path id="8_${sandhi_map[false][GM_getValue('region')][8]}" d="M215 125 H135" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+                <path id="7_${sandhi_map[false][region][7]}" d="M35 125 H115" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+                <path id="8_${sandhi_map[false][region][8]}" d="M215 125 H135" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
                 
                 <!-- Vertical arrows -->
-                ${GM_getValue('region')!=='C'&&`<path id="1_7" d="M25 35 V115" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>`}
-                <path id="3_2" d="${GM_getValue('region')=='C'?'M125 65 V35':'M125 115 V35'}" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+                ${region!=='C'&&`<path id="1_7" d="M25 35 V115" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>`}
+                <path id="3_2" d="${region=='C'?'M125 65 V35':'M125 115 V35'}" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
                 <path id="4_8" d="M225 35 V115" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
                 <path id="8_4" d="M225 115 V35" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
                 
                 <!-- Diagonal arrows -->
-                ${GM_getValue('region')=='C'&&`<path id="2_5" d="M115 35 L80 65" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>`}
-                <path id="${{'N': '5_7', 'S': '5_3', 'C': '5_6'}[GM_getValue('region')]}" 
-                    d="${GM_getValue('region')=='N'?'M70 85 L35 115':'M80 85 L115 115'}"
+                ${region=='C'&&`<path id="2_5" d="M115 35 L80 65" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>`}
+                <path id="${{'N': '5_7', 'S': '5_3', 'C': '5_6'}[region]}" 
+                    d="${region=='N'?'M70 85 L35 115':'M80 85 L115 115'}"
                     stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
                 
                 <!-- arrow definition -->
@@ -132,19 +167,18 @@
                 </defs>
             </svg>`
         }
-        let id = GM_getValue('id')
-        if (id == '4_8') document.getElementById('8_4').remove();
-        if (id == '8_4') document.getElementById('4_8').remove();
-        if (['2_1', '3_1'].includes(id) && GM_getValue('color') == 'blue') id = '2,3_1'
+        if (syl_id == '4_8') document.getElementById('8_4').remove();
+        if (syl_id == '8_4') document.getElementById('4_8').remove();
+        if (['2_1', '3_1'].includes(syl_id) && syl_color == 'blue') syl_id = '2,3_1'
 
-        if (['1_1', '6_6', '7_7'].includes(id)) {
-            const text = document.getElementById(id.slice(0,1));
-            text.setAttribute('fill', GM_getValue('color'));
+        if (['1_1', '6_6', '7_7'].includes(syl_id)) {
+            const text = document.getElementById(syl_id.slice(0,1));
+            text.setAttribute('fill', syl_color);
             text.setAttribute('font-size', 16);
         } else {
-            const path = document.getElementById(id);
-            path.setAttribute('stroke', GM_getValue('color'));
-            path.setAttribute('marker-end', `url(#arrow_${GM_getValue('color')})`);
+            const path = document.getElementById(syl_id);
+            path.setAttribute('stroke', syl_color);
+            path.setAttribute('marker-end', `url(#arrow_${syl_color})`);
         }
     }
 
@@ -245,7 +279,7 @@
                                     data-sandhi_S="${tone.sandhi_S}"
                                     data-sandhi_C="${tone.sandhi_C}"
                                 >
-                                    ${tone[`sandhi_${GM_getValue('region')}`]}
+                                    ${tone[`sandhi_${region}`]}
                                 </div>
                                 <div>${v3}</div>
                             </div>
@@ -352,8 +386,8 @@
         const tooltip = document.getElementById('custom-tooltip');
         if (e.target.classList.contains('tone') && e.target.dataset.color != 'null') {
             tooltip.style.display = 'block';
-            GM_setValue('id', `${e.target.dataset.tone}_${e.target.dataset[`sandhi_${GM_getValue('region').toLowerCase()}`]}`)
-            GM_setValue('color', e.target.dataset.color)
+            syl_id = `${e.target.dataset.tone}_${e.target.dataset[`sandhi_${region.toLowerCase()}`]}`
+            syl_color = e.target.dataset.color
 
             const rect = e.target.getBoundingClientRect();
             let left = rect.left + window.scrollX + rect.width / 2 - tooltip.offsetWidth / 2;
@@ -365,20 +399,18 @@
             tooltip.style.left = `${left}px`;
             tooltip.style.top = `${top}px`;
         } else if (['btn', 'lang'].every(c => e.target.classList.contains(c))) {
-            GM_setValue('lang', e.target.dataset.val)
+            lang = e.target.dataset.val
+            setValue('lang', lang)
         } else if (['btn', 'region'].every(c => e.target.classList.contains(c))) {
-            refreshDisplay(GM_getValue('region'), e.target.dataset.val)
-            GM_setValue('region', e.target.dataset.val)
+            refreshDisplay(region, e.target.dataset.val)
+            region = e.target.dataset.val
+            setValue('region', region)
         } else if (!tooltip.contains(e.target)) {
             tooltip.style.display = 'none';
         }
         refreshLang()
         refreshSandhi()
     });
-
-    // Default language & region settings
-    GM_setValue('lang', GM_getValue('lang', 'zh'))
-    GM_setValue('region', GM_getValue('region', 'S'))
 
     // Run initially and observe for changes
     console.log("taigi-sandhi-visualization")
@@ -389,12 +421,11 @@
         mutations.forEach((mutation) => {
             mutation.addedNodes.forEach((node) => {
                 if (node.nodeType === Node.ELEMENT_NODE || node.nodeType === Node.TEXT_NODE) {
-                    if (processPage(node)) {
-                        console.log('done')
-                    }
+                    processPage(node)
                 }
             });
         });
+        console.log('done')
     });
     observer.observe(document.getElementsByTagName('main')[0], { childList: true, subtree: true });
 })();
