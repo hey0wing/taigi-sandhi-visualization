@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        taigi-sandhi-visualization
 // @namespace   hey0wing
-// @version     1.5
+// @version     1.6
 // @description Highlights tone sandhi changes in Taiwanese romanization on the MOE dictionary site. Changed tones are marked in red with a tooltip showing possible base tone → sandhi tone.
 // @author      hey0wing
 // @match       https://sutian.moe.edu.tw/*
@@ -45,7 +45,7 @@
         }
     };
     var lang = await getValue('lang') || 'zh'
-    var region = await getValue('region') || 'S'
+    var region = await getValue('region1') || 'S'
     var syl_id = await getValue('syl_id') || ''
     var syl_color = await getValue('syl_color') || ''
 
@@ -74,7 +74,7 @@
     function refreshDisplay(old_val, new_val) {
         const syllableCells = document.getElementsByClassName('tone');
         Array.from(syllableCells).forEach(syl => {
-            const t = syl.dataset[`sandhi_${new_val.toLowerCase()}`]
+            const t = syl.dataset[`sandhi_${new_val.toLowerCase()}`] || syl.dataset.tone
             if (syl_id == `${syl.dataset.tone}_${syl.dataset[`sandhi_${old_val.toLowerCase()}`]}`) {
                 syl_id = `${syl.dataset.tone}_${t}`
             }
@@ -175,7 +175,7 @@
             const text = document.getElementById(syl_id.slice(0,1));
             text.setAttribute('fill', syl_color);
             text.setAttribute('font-size', 16);
-        } else {
+        } else if (syl_id) {
             const path = document.getElementById(syl_id);
             path.setAttribute('stroke', syl_color);
             path.setAttribute('marker-end', `url(#arrow_${syl_color})`);
@@ -217,19 +217,18 @@
             }
         }
         tone ??= isChecked ? 4 : 1
+        let color = (tone != 9 && sandhi) ? (suffix == 'á' ? 'blue': 'red') : null
 
-        if (neutral=='before') return { tone: tone, sandhi: null, color: 'green', display: tone }
-        if (neutral=='after') return { tone: 0, sandhi: null, color: 'green', display: 0 }
-
-        let syl = {
-            tone: tone,
-            color: (tone != 9 && sandhi) ? (suffix == 'á' ? 'blue': 'red') : null,
-        }
-        Object.entries(sandhi_map[suffix == 'á']).forEach(([k, v]) => {
-            syl[`sandhi_${k}`] = v[tone]
-        })
-
-        return syl
+        if (neutral=='before') return { tone: tone, color: 'green' }
+        if (neutral=='after') return { tone: 0, color: 'green' }
+        if (!color) return { tone: tone }
+        
+        return {
+            tone, color,
+            ...Object.entries(sandhi_map[suffix === 'á']).reduce(
+                (obj, [k, v]) => (obj[`sandhi_${k}`] = v[tone], obj), {}
+            )
+        };
     }
 
     // Modified from https://github.com/andreihar/taibun.js
@@ -273,13 +272,10 @@
                         return `
                             <div class="syllable-cell">
                                 <div class="tone ${tone.color}" 
-                                    data-color="${tone.color}"
-                                    data-tone="${tone.tone}"
-                                    data-sandhi_N="${tone.sandhi_N}"
-                                    data-sandhi_S="${tone.sandhi_S}"
-                                    data-sandhi_C="${tone.sandhi_C}"
+                                    data-tone="${tone.tone}" 
+                                    ${Object.entries(tone).map(([k, v]) => `data-${k}=${v}`).join(' ')}
                                 >
-                                    ${tone[`sandhi_${region}`]}
+                                    ${tone[`sandhi_${region}`] || tone.tone}
                                 </div>
                                 <div>${v3}</div>
                             </div>
@@ -384,7 +380,7 @@
 
     document.addEventListener('click', (e) => {
         const tooltip = document.getElementById('custom-tooltip');
-        if (e.target.classList.contains('tone') && e.target.dataset.color != 'null') {
+        if (e.target.classList.contains('tone') && e.target.dataset.color && e.target.dataset.color != 'green') {
             tooltip.style.display = 'block';
             syl_id = `${e.target.dataset.tone}_${e.target.dataset[`sandhi_${region.toLowerCase()}`]}`
             syl_color = e.target.dataset.color
@@ -404,7 +400,7 @@
         } else if (['btn', 'region'].every(c => e.target.classList.contains(c))) {
             refreshDisplay(region, e.target.dataset.val)
             region = e.target.dataset.val
-            setValue('region', region)
+            setValue('region1', region)
         } else if (!tooltip.contains(e.target)) {
             tooltip.style.display = 'none';
         }
